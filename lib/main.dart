@@ -1,28 +1,45 @@
 import 'package:flutter/material.dart';
 import 'login_page.dart';
-import 'home_page.dart'; // Una nueva clase para la pantalla principal
+import 'home_page.dart';
 
 void main() {
   runApp(const InstagramClone());
 }
 
-class InstagramClone extends StatefulWidget {
+class InstagramClone extends StatelessWidget {
   const InstagramClone({Key? key}) : super(key: key);
 
   @override
-  _InstagramCloneState createState() => _InstagramCloneState();
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Pixion',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        scaffoldBackgroundColor: Colors.white,
+      ),
+      home: const AuthenticationManager(),
+    );
+  }
 }
 
-class _InstagramCloneState extends State<InstagramClone> {
+class AuthenticationManager extends StatefulWidget {
+  const AuthenticationManager({Key? key}) : super(key: key);
+
+  @override
+  _AuthenticationManagerState createState() => _AuthenticationManagerState();
+}
+
+class _AuthenticationManagerState extends State<AuthenticationManager> {
   bool isAuthenticated = false;
 
-  void _loginSuccess() {
+  void _handleLoginSuccess() {
     setState(() {
       isAuthenticated = true;
     });
   }
 
-  void _logout() {
+  void _handleLogout() {
     setState(() {
       isAuthenticated = false;
     });
@@ -30,13 +47,8 @@ class _InstagramCloneState extends State<InstagramClone> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Pixion',
-      theme: ThemeData(primarySwatch: Colors.blue),
-      home: isAuthenticated
-          ? HomePage(onLogout: _logout) // Pantalla principal con cierre de sesión
-          : LoginPage(onLoginSuccess: _loginSuccess), // Pantalla de login
-    );
+    return isAuthenticated
+        ? HomePage(onLogout: _handleLogout) // Pantalla principal
+        : LoginPage(onLoginSuccess: _handleLoginSuccess); // Pantalla de login
   }
 }

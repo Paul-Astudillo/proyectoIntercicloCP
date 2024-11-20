@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'database_helper.dart';
+import 'create_account_page.dart';
 
 class LoginPage extends StatefulWidget {
   final VoidCallback onLoginSuccess;
@@ -24,7 +25,7 @@ class _LoginPageState extends State<LoginPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Login successful!")),
       );
-      widget.onLoginSuccess(); // Notifica éxito al padre
+      widget.onLoginSuccess();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Login failed!")),
@@ -32,15 +33,22 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  void _navigateToCreateAccount() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => CreateAccountPage()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF1C1C1C), // Fondo negro carbón
+      backgroundColor: Color(0xFF1C1C1C),
       appBar: AppBar(
-        backgroundColor: Color(0xFF8B0000), // Rojo ladrillo
+        backgroundColor: Color(0xFF8B0000),
         title: Text(
           'Welcome to Social App',
-          style: TextStyle(color: Color(0xFFD3D3D3)), // Gris claro
+          style: TextStyle(color: Color(0xFFD3D3D3)),
         ),
         centerTitle: true,
       ),
@@ -52,60 +60,50 @@ class _LoginPageState extends State<LoginPage> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               SizedBox(height: 50),
-
-              // Imagen centrada ligeramente a la derecha
               Align(
-                alignment: Alignment.center, // Cambiado para mover la imagen a la izquierda
+                alignment: Alignment.center,
                 child: Image.asset(
                   'assets/images/logo.png',
                   height: 150,
                 ),
               ),
               SizedBox(height: 30),
-
-              // Título estilizado
               Text(
                 "Log In",
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF800020), // Rojo burdeos
+                  color: Color(0xFF800020),
                 ),
               ),
               SizedBox(height: 20),
-
-              // Campo de texto para email
               TextField(
                 controller: _emailController,
-                style: TextStyle(color: Color.fromARGB(255, 255, 255, 255)), // Gris claro
+                style: TextStyle(color: Colors.white),
                 decoration: InputDecoration(
-                  labelText: "Email",
-                  labelStyle: TextStyle(color: Color(0xFFD3D3D3)), // Gris claro
+                  labelText: "UserName",
+                  labelStyle: TextStyle(color: Color(0xFFD3D3D3)),
                   border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.email, color: Color(0xFF8B0000)), // Rojo ladrillo
+                  prefixIcon: Icon(Icons.email, color: Color(0xFF8B0000)),
                 ),
               ),
               SizedBox(height: 20),
-
-              // Campo de texto para contraseña
               TextField(
                 controller: _passwordController,
-                style: TextStyle(color: Color.fromARGB(255, 255, 255, 255)), // Gris claro
+                style: TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   labelText: "Password",
-                  labelStyle: TextStyle(color: Color(0xFFD3D3D3)), // Gris claro
+                  labelStyle: TextStyle(color: Color(0xFFD3D3D3)),
                   border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.lock, color: Color(0xFF8B0000)), // Rojo ladrillo
+                  prefixIcon: Icon(Icons.lock, color: Color(0xFF8B0000)),
                 ),
                 obscureText: true,
               ),
               SizedBox(height: 20),
-
-              // Botón de login estilizado
               ElevatedButton(
                 onPressed: _login,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFFFF4500), // Rojo fuego
+                  backgroundColor: Color(0xFFFF4500),
                   padding: EdgeInsets.symmetric(horizontal: 50, vertical: 15),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
@@ -117,8 +115,21 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
               SizedBox(height: 10),
-
-              // Enlace para "Olvidé mi contraseña"
+              ElevatedButton(
+                onPressed: _navigateToCreateAccount,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFF8B0000),
+                  padding: EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: Text(
+                  "Create Account",
+                  style: TextStyle(fontSize: 18, color: Colors.white),
+                ),
+              ),
+              SizedBox(height: 10),
               TextButton(
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -127,7 +138,7 @@ class _LoginPageState extends State<LoginPage> {
                 },
                 child: Text(
                   "Forgot Password?",
-                  style: TextStyle(color: Color(0xFFD3D3D3)), // Gris claro
+                  style: TextStyle(color: Color(0xFFD3D3D3)),
                 ),
               ),
             ],
