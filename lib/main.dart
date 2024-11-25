@@ -1,54 +1,25 @@
 import 'package:flutter/material.dart';
 import 'login_page.dart';
-import 'home_page.dart';
 
 void main() {
-  runApp(const InstagramClone());
+  runApp(SocialApp());
 }
 
-class InstagramClone extends StatelessWidget {
-  const InstagramClone({Key? key}) : super(key: key);
-
+class SocialApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Pixion',
+      title: 'Social App',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
-        scaffoldBackgroundColor: Colors.white,
+        primaryColor: Color(0xFF8B0000),
+        scaffoldBackgroundColor: Color(0xFF1C1C1C),
+        textTheme: const TextTheme(
+          bodyLarge: TextStyle(color: Colors.white), // Actualización
+          bodyMedium: TextStyle(color: Colors.white), // Actualización
+        ),
       ),
-      home: const AuthenticationManager(),
+      home: LoginPage(),
     );
-  }
-}
-
-class AuthenticationManager extends StatefulWidget {
-  const AuthenticationManager({Key? key}) : super(key: key);
-
-  @override
-  _AuthenticationManagerState createState() => _AuthenticationManagerState();
-}
-
-class _AuthenticationManagerState extends State<AuthenticationManager> {
-  bool isAuthenticated = false;
-
-  void _handleLoginSuccess() {
-    setState(() {
-      isAuthenticated = true;
-    });
-  }
-
-  void _handleLogout() {
-    setState(() {
-      isAuthenticated = false;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return isAuthenticated
-        ? HomePage(onLogout: _handleLogout) // Pantalla principal
-        : LoginPage(onLoginSuccess: _handleLoginSuccess); // Pantalla de login
   }
 }

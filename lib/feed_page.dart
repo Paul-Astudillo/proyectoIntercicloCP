@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class FeedPage extends StatefulWidget {
   @override
@@ -6,28 +8,44 @@ class FeedPage extends StatefulWidget {
 }
 
 class _FeedPageState extends State<FeedPage> {
-  // Lista de publicaciones (imágenes) con datos de likes y comentarios
-  final List<Map<String, dynamic>> _posts = [
-    {
-      'image': 'assets/images/photo1.png',
-      'likes': 10,
-      'comments': 2,
-    },
-    {
-      'image': 'assets/images/photo2.png',
-      'likes': 25,
-      'comments': 5,
-    },
-    {
-      'image': 'assets/images/photo3.png',
-      'likes': 15,
-      'comments': 1,
-    },
-  ];
+  List<dynamic> _posts = []; // Lista dinámica para almacenar las publicaciones.
+  bool _isLoading = true; // Indicador de carga.
 
+  @override
+  void initState() {
+    super.initState();
+    _fetchPosts(); // Cargar publicaciones al iniciar.
+  }
+
+  // Función para obtener publicaciones desde la API.
+  Future<void> _fetchPosts() async {
+    final url = Uri.parse('http://192.168.8.102:8000/api/posts/'); // Endpoint del backend
+    try {
+      final response = await http.get(url, headers: {'Content-Type': 'application/json'});
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          _posts = data; // Se espera que 'data' sea una lista de publicaciones.
+          _isLoading = false;
+        });
+      } else {
+        throw Exception('Failed to load posts');
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error loading posts: $e')),
+      );
+    }
+  }
+
+  // Incrementar likes
   void _incrementLikes(int index) {
     setState(() {
-      _posts[index]['likes'] += 1; // Incrementar likes
+      _posts[index]['likes'] += 1;
     });
   }
 
@@ -37,60 +55,64 @@ class _FeedPageState extends State<FeedPage> {
       backgroundColor: Colors.black,
       appBar: AppBar(
         title: Text("Feed"),
-        backgroundColor: Color(0xFF8B0000), // Rojo ladrillo
+        backgroundColor: Color(0xFF8B0000), // Rojo ladrillo.
       ),
-      body: ListView.builder(
-        itemCount: _posts.length,
-        itemBuilder: (context, index) {
-          final post = _posts[index];
-          return Card(
-            color: Colors.grey[900],
-            margin: EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Imagen de la publicación
-                Image.asset(
-                  post['image'],
-                  height: 300,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      body: _isLoading
+          ? Center(
+              child: CircularProgressIndicator(), // Muestra indicador de carga.
+            )
+          : ListView.builder(
+              itemCount: _posts.length,
+              itemBuilder: (context, index) {
+                final post = _posts[index];
+                return Card(
+                  color: Colors.grey[900],
+                  margin: EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          IconButton(
-                            icon: Icon(Icons.favorite, color: Colors.red),
-                            onPressed: () => _incrementLikes(index),
-                          ),
-                          Text(
-                            "${post['likes']} likes",
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ],
+                      // Imagen de la publicación desde URL.
+                      Image.network(
+                        post['image_url'], // Campo de la URL de la imagen.
+                        height: 300,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
                       ),
-                      Row(
-                        children: [
-                          Icon(Icons.comment, color: Colors.white),
-                          SizedBox(width: 5),
-                          Text(
-                            "${post['comments']} comments",
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ],
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                IconButton(
+                                  icon: Icon(Icons.favorite, color: Colors.red),
+                                  onPressed: () => _incrementLikes(index),
+                                ),
+                                Text(
+                                  "${post['likes']} likes",
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ],
+                            ),
+                            Row(
+                              children: [
+                                Icon(Icons.comment, color: Colors.white),
+                                SizedBox(width: 5),
+                                Text(
+                                  "${post['comments']} comments",
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
-                ),
-              ],
+                );
+              },
             ),
-          );
-        },
-      ),
     );
   }
 }

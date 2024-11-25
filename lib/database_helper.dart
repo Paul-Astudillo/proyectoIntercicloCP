@@ -1,23 +1,49 @@
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
 class DatabaseHelper {
-  static final DatabaseHelper _instance = DatabaseHelper._internal();
-  final Map<String, String> _users = {
-    'paul': '1234',
-  };
+  final String baseUrl = 'http://192.168.8.102:8000'; // Cambia según tu backend
 
-  factory DatabaseHelper() {
-    return _instance;
-  }
+  // Función para registrar un usuario
+  Future<void> insertUser(String username, String email, String password) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/usuarios/'), // Endpoint para registrar usuarios
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'username': username, // Nombre de usuario
+          'email': email, // Email del usuario
+          'password': password, // Contraseña
+        }),
+      );
 
-  DatabaseHelper._internal();
-
-  Future<void> insertUser(String email, String password) async {
-    if (_users.containsKey(email)) {
-      throw Exception("User already exists!");
+      if (response.statusCode != 201) {
+        throw Exception('Failed to register user: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Error registering user: $e');
     }
-    _users[email] = password;
   }
 
-  Future<bool> validateUser(String email, String password) async {
-    return _users[email] == password;
+  // Función para validar un usuario (login)
+  Future<bool> validateUser(String username, String password) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/login/'), // Endpoint para login
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'username': username, // Nombre de usuario
+          'password': password, // Contraseña
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return true; // Credenciales válidas
+      } else {
+        throw Exception('Invalid credentials: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Error logging in: $e');
+    }
   }
 }

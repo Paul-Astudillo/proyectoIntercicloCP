@@ -1,34 +1,49 @@
 import 'package:flutter/material.dart';
 import 'database_helper.dart';
+import 'home_page.dart';
 import 'create_account_page.dart';
 
 class LoginPage extends StatefulWidget {
-  final VoidCallback onLoginSuccess;
-
-  const LoginPage({Key? key, required this.onLoginSuccess}) : super(key: key);
-
   @override
   _LoginPageState createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final _emailController = TextEditingController();
+  final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
 
   void _login() async {
-    final email = _emailController.text;
-    final password = _passwordController.text;
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text.trim();
 
-    final isValid = await DatabaseHelper().validateUser(email, password);
-
-    if (isValid) {
+    if (username.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Login successful!")),
+        SnackBar(content: Text("Please fill in all fields")),
       );
-      widget.onLoginSuccess();
-    } else {
+      return;
+    }
+
+    try {
+      final isValid = await DatabaseHelper().validateUser(username, password);
+      if (isValid) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Login successful!")),
+        );
+        // Navegar a HomePage pasando el username del usuario
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => HomePage(userEmail: username),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Invalid credentials")),
+        );
+      }
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Login failed!")),
+        SnackBar(content: Text("Error: ${e.toString()}")),
       );
     }
   }
@@ -56,7 +71,6 @@ class _LoginPageState extends State<LoginPage> {
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               SizedBox(height: 50),
@@ -73,18 +87,18 @@ class _LoginPageState extends State<LoginPage> {
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF800020),
+                  color: Colors.redAccent,
                 ),
               ),
               SizedBox(height: 20),
               TextField(
-                controller: _emailController,
+                controller: _usernameController,
                 style: TextStyle(color: Colors.white),
                 decoration: InputDecoration(
-                  labelText: "UserName",
+                  labelText: "Username",
                   labelStyle: TextStyle(color: Color(0xFFD3D3D3)),
                   border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.email, color: Color(0xFF8B0000)),
+                  prefixIcon: Icon(Icons.person, color: Color(0xFF8B0000)),
                 ),
               ),
               SizedBox(height: 20),
@@ -127,18 +141,6 @@ class _LoginPageState extends State<LoginPage> {
                 child: Text(
                   "Create Account",
                   style: TextStyle(fontSize: 18, color: Colors.white),
-                ),
-              ),
-              SizedBox(height: 10),
-              TextButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Forgot Password? Not implemented!")),
-                  );
-                },
-                child: Text(
-                  "Forgot Password?",
-                  style: TextStyle(color: Color(0xFFD3D3D3)),
                 ),
               ),
             ],

@@ -13,6 +13,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   image_picker: ^1.0.0
   path_provider: ^2.0.12
+  http: ^1.2.2 # Agrega la dependencia HTTP
 
 dev_dependencies:
   flutter_test:
