@@ -45,9 +45,9 @@ class SettingsPage extends StatelessWidget {
               SizedBox(height: 20),
               Image.asset(
                 'assets/images/ups.png', // Cambia por la ruta real de tu imagen
-                height: 200,
-                width: double.infinity,
-                fit: BoxFit.cover,
+                height: 250, // Cambiado a dimensiones más pequeñas
+                width: 250,
+                fit: BoxFit.contain, // Cambiado a "contain" para mantener la proporción
               ),
               SizedBox(height: 20),
               Text(
@@ -56,7 +56,7 @@ class SettingsPage extends StatelessWidget {
               ),
               SizedBox(height: 20),
               Text(
-                "Server IP: 192.168.8.102",
+                "Server IP: 192.168.1.5",
                 style: TextStyle(fontSize: 16, color: Colors.white),
               ),
             ],

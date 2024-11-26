@@ -24,16 +24,23 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     try {
-      final isValid = await DatabaseHelper().validateUser(username, password);
+      // Supongamos que validateUser devuelve un Map con 'isValid' y 'userId'
+      final result = await DatabaseHelper().validateUser(username, password);
+      final isValid = result['isValid'];
+      final userId = result['userId'];
+
       if (isValid) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Login successful!")),
         );
-        // Navegar a HomePage pasando el username del usuario
+        // Navegar a HomePage pasando el username y userId del usuario
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => HomePage(userEmail: username),
+            builder: (context) => HomePage(
+              userEmail: username,
+              userId: userId.toString(), // Asegúrate de que sea un String
+            ),
           ),
         );
       } else {

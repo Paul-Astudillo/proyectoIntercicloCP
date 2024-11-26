@@ -8,8 +8,9 @@ import 'dart:convert';
 
 class HomePage extends StatefulWidget {
   final String userEmail;
+  final String userId; // ID del usuario
 
-  HomePage({required this.userEmail});
+  HomePage({required this.userEmail, required this.userId});
 
   @override
   _HomePageState createState() => _HomePageState();
@@ -19,13 +20,18 @@ class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
   File? _selectedImage;
   String? _selectedFilter;
-  final String _serverIP = '192.168.8.102'; // IP fija del servidor.
-  final List<String> _filters = ['Gauss', 'Erosion', 'Lapiz', 'Negative', 'Parcial Color', 'Swirl'];
+  final String _serverIP = '192.168.1.5'; // IP fija del servidor.
+  final List<String> _filters = ['gauss', 'erosion', 'pencil', 'negative', 'partialcolor', 'swirl'];
 
-  final List<dynamic> _userImages = []; // Imágenes cargadas desde la base de datos.
+  List<dynamic> _userImages = []; // Almacenamiento en memoria para las imágenes.
+  bool _isLoadingImages = true;
 
-  // Función para cargar imágenes desde la base de datos.
   Future<void> _loadUserImages() async {
+    if (_userImages.isNotEmpty) {
+      // Si ya se cargaron las imágenes, no vuelvas a cargarlas.
+      return;
+    }
+
     final url = Uri.parse('http://$_serverIP:8000/api/images/');
     try {
       final response = await http.get(url, headers: {'Content-Type': 'application/json'});
@@ -33,20 +39,22 @@ class _HomePageState extends State<HomePage> {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         setState(() {
-          _userImages.clear();
-          _userImages.addAll(data); // Se espera que data sea una lista de imágenes.
+          _userImages = data;
+          _isLoadingImages = false;
         });
       } else {
         throw Exception('Failed to load images');
       }
     } catch (e) {
+      setState(() {
+        _isLoadingImages = false;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error loading images: $e')),
       );
     }
   }
 
-  // Función para seleccionar una imagen de la galería y aplicar filtro.
   void _pickImageFromGallery() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
@@ -55,12 +63,10 @@ class _HomePageState extends State<HomePage> {
       setState(() {
         _selectedImage = File(pickedFile.path);
       });
-
-      _showFilterDialog(); // Mostrar el diálogo para elegir filtros.
+      _showFilterDialog();
     }
   }
 
-  // Función para tomar una foto con la cámara y aplicar filtro.
   void _takePhoto() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.camera);
@@ -69,52 +75,57 @@ class _HomePageState extends State<HomePage> {
       setState(() {
         _selectedImage = File(pickedFile.path);
       });
-
-      _showFilterDialog(); // Mostrar el diálogo para elegir filtros.
+      _showFilterDialog();
     }
   }
 
-  // Mostrar un cuadro de diálogo para seleccionar filtros y enviar datos.
   void _showFilterDialog() {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text("Apply a Filter"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Campo no editable para mostrar la IP del servidor.
-              TextField(
-                controller: TextEditingController(text: _serverIP),
-                decoration: InputDecoration(labelText: "Server IP"),
-                readOnly: true,
-              ),
-              SizedBox(height: 20),
-              // Lista desplegable para seleccionar un filtro.
-              DropdownButton<String>(
-                value: _selectedFilter,
-                hint: Text("Select a Filter"),
-                onChanged: (String? newValue) {
-                  setState(() {
-                    _selectedFilter = newValue;
-                  });
-                },
-                items: _filters.map<DropdownMenuItem<String>>((String filter) {
-                  return DropdownMenuItem<String>(
-                    value: filter,
-                    child: Text(filter),
-                  );
-                }).toList(),
-              ),
-            ],
+          content: StatefulBuilder(
+            builder: (BuildContext context, StateSetter setDialogState) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(10),
+                    color: Colors.grey[200],
+                    child: Text(
+                      "Server IP: $_serverIP",
+                      style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  DropdownButton<String>(
+                    isExpanded: true,
+                    value: _selectedFilter,
+                    hint: Text("Select a Filter"),
+                    icon: Icon(Icons.arrow_drop_down),
+                    onChanged: (String? newValue) {
+                      setDialogState(() {
+                        _selectedFilter = newValue;
+                      });
+                    },
+                    items: _filters.map<DropdownMenuItem<String>>((String filter) {
+                      return DropdownMenuItem<String>(
+                        value: filter,
+                        child: Text(filter),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              );
+            },
           ),
           actions: [
             TextButton(
               onPressed: () async {
                 if (_selectedImage != null && _selectedFilter != null) {
-                  Navigator.of(context).pop(); // Cerrar diálogo antes de enviar.
-                  await _sendImageWithFilter(_selectedImage!, _selectedFilter!);
+                  Navigator.of(context).pop();
+                  await _sendImageWithFilter(_selectedImage!, _selectedFilter!, widget.userId);
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text("Please select an image and a filter")),
@@ -129,27 +140,31 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // Enviar la imagen y el filtro seleccionado al servidor.
-  Future<void> _sendImageWithFilter(File image, String filter) async {
-    final url = Uri.parse('http://$_serverIP:8000/api/apply_filter/');
+  Future<void> _sendImageWithFilter(File image, String filter, String userId) async {
+    final url = Uri.parse('http://192.168.1.5:8000/api/process-image/');
     try {
       final request = http.MultipartRequest('POST', url)
-        ..fields['filter'] = filter
-        ..files.add(await http.MultipartFile.fromPath('image', image.path));
+        ..fields['id_user'] = userId
+        ..fields['filter_type'] = filter
+        ..files.add(await http.MultipartFile.fromPath('img_original', image.path));
 
       final response = await request.send();
 
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Filter applied successfully")),
+          SnackBar(content: Text("Filtro aplicado satisfactoriamente")),
         );
-        _loadUserImages(); // Recargar imágenes después de enviar.
+        setState(() {
+          _userImages = []; // Limpia las imágenes para volver a cargarlas si es necesario.
+        });
+        await _loadUserImages();
       } else {
-        throw Exception('Failed to apply filter');
+        final responseBody = await response.stream.bytesToString();
+        throw Exception('Failed to apply filter: $responseBody');
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error applying filter: $e")),
+        SnackBar(content: Text("Error al aplicar filtro: $e")),
       );
     }
   }
@@ -157,7 +172,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _loadUserImages();
+    _loadUserImages(); // Cargar las imágenes una sola vez al iniciar.
   }
 
   @override
@@ -171,25 +186,66 @@ class _HomePageState extends State<HomePage> {
           style: TextStyle(color: Colors.white),
         ),
       ),
-      body: GridView.builder(
-        padding: EdgeInsets.all(10),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 10,
-          mainAxisSpacing: 10,
-        ),
-        itemCount: _userImages.length,
-        itemBuilder: (context, index) {
-          final image = _userImages[index];
-          return Card(
-            color: Colors.grey[900],
-            child: Image.network(
-              image['url'], // URL de la imagen desde la base de datos.
-              fit: BoxFit.cover,
-            ),
-          );
-        },
-      ),
+      body: _isLoadingImages
+          ? Center(child: CircularProgressIndicator())
+          : _userImages.isEmpty
+              ? Center(
+                  child: Text(
+                    'No hay imágenes disponibles',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                )
+              : GridView.builder(
+                  padding: EdgeInsets.all(10),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                  ),
+                  itemCount: _userImages.length,
+                  itemBuilder: (context, index) {
+                    final image = _userImages[index];
+                    return Card(
+                      color: Colors.grey[900],
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Image.network(
+                              image['img_processed'] ?? '',
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Center(
+                                  child: Icon(
+                                    Icons.broken_image,
+                                    color: Colors.white,
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8.0, vertical: 4.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  "Likes: ${image['likes'] ?? 0}",
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                                Text(
+                                  "Comments: ${image['comments']?.length ?? 0}",
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: Color(0xFF1C1C1C),
         selectedItemColor: Colors.red,
@@ -204,7 +260,7 @@ class _HomePageState extends State<HomePage> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => ProfilePage(userEmail: widget.userEmail),
+                builder: (context) => ProfilePage(userId: widget.userId),
               ),
             );
           } else if (index == 4) {

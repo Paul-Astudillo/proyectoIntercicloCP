@@ -2,7 +2,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class DatabaseHelper {
-  final String baseUrl = 'http://192.168.8.102:8000'; // Cambia según tu backend
+  final String baseUrl = 'http://192.168.1.5:8000'; // Cambia según tu backend
 
   // Función para registrar un usuario
   Future<void> insertUser(String username, String email, String password) async {
@@ -26,7 +26,7 @@ class DatabaseHelper {
   }
 
   // Función para validar un usuario (login)
-  Future<bool> validateUser(String username, String password) async {
+  Future<Map<String, dynamic>> validateUser(String username, String password) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/api/login/'), // Endpoint para login
@@ -38,9 +38,16 @@ class DatabaseHelper {
       );
 
       if (response.statusCode == 200) {
-        return true; // Credenciales válidas
+        final data = jsonDecode(response.body);
+        return {
+          'isValid': true,
+          'userId': data['id'], // Obtén el ID del usuario de la respuesta
+        };
       } else {
-        throw Exception('Invalid credentials: ${response.body}');
+        return {
+          'isValid': false,
+          'userId': null,
+        };
       }
     } catch (e) {
       throw Exception('Error logging in: $e');
